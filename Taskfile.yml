@@ -64,3 +64,18 @@ tasks:
     cmds:
       - task: release-arm64
       - task: release-x64
+
+  windows-run:
+    desc: 在 Windows 桌面运行 Debug 版本
+    cmds:
+      - flutter run -d windows
+
+  windows-debug:
+    desc: 构建 Windows Debug 版本
+    cmds:
+      - flutter build windows --debug
+
+  windows-release:
+    desc: 构建 Windows Release 版本
+    cmds:
+      - flutter build windows --release

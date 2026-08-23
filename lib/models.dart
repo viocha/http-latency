@@ -247,6 +247,14 @@ class TestRun {
   final NetworkSnapshot network;
   final List<TargetResult> results;
 
+  double? get overallAverageMs {
+    final durations = results
+        .expand((result) => result.successfulDurations)
+        .toList(growable: false);
+    if (durations.isEmpty) return null;
+    return durations.reduce((a, b) => a + b) / durations.length;
+  }
+
   String encode() => jsonEncode({
     'id': id,
     'startedAt': startedAt.toIso8601String(),

@@ -22,7 +22,7 @@ class LatencyTester {
       ..connectionTimeout = timeout
       ..idleTimeout = timeout
       ..autoUncompress = true
-      ..userAgent = 'HTTP-Latency/1.0 (Android; Flutter)';
+      ..userAgent = 'HTTP-Latency/1.0 (Flutter)';
   }
 
   final Duration timeout;

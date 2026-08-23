@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app_controller.dart';
 import 'app_ui.dart';
+import 'platform_services.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializePlatformServices();
   runApp(const HttpLatencyApp());
 }
 
@@ -52,6 +55,9 @@ class _HttpLatencyAppState extends State<HttpLatencyApp> {
     theme: ThemeData(
       colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0969C3)),
       useMaterial3: true,
+      fontFamily: defaultTargetPlatform == TargetPlatform.windows
+          ? 'Microsoft YaHei UI'
+          : null,
       scaffoldBackgroundColor: const Color(0xFFF6F8FC),
       cardTheme: const CardThemeData(margin: EdgeInsets.zero),
       inputDecorationTheme: const InputDecorationTheme(

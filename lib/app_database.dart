@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import 'models.dart';
+import 'platform_services.dart';
 
 class SavedConfiguration {
   const SavedConfiguration({
@@ -24,9 +24,8 @@ class AppDatabase {
 
   Future<Database> get _db async {
     if (_database != null) return _database!;
-    final directory = await getDatabasesPath();
     _database = await openDatabase(
-      p.join(directory, 'http_latency.db'),
+      await databaseFilePath(),
       version: 2,
       onCreate: (db, _) async {
         await db.execute(

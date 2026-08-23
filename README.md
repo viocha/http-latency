@@ -10,6 +10,7 @@
 - 支持自定义 HTTP/HTTPS URL、3/5/10/15 秒超时、取消以及 10 MB 响应上限。
 - 通过无需 API Key 的 ipwho.is 显示公网 IP 和近似地理位置，不读取 Wi-Fi 名称。
 - 使用 SQLite 在本机保存最近 20 次完整测试结果。
+- 支持 Android 15+ 与 Windows x64，并共用测试、统计和历史记录逻辑。
 
 ## 构建
 
@@ -23,6 +24,9 @@ task x64         # 仅构建模拟器用 x86_64 APK
 task release     # 构建两个架构的 Release APK
 task release-arm64 # 仅构建手机用 arm64-v8a Release APK
 task release-x64 # 仅构建模拟器用 x86_64 Release APK
+task windows-run # 在 Windows 桌面运行 Debug 版本
+task windows-debug # 构建 Windows Debug 版本
+task windows-release # 构建 Windows Release 版本
 task check       # 静态检查与测试
 task format      # 格式化 Dart 代码
 task --list      # 查看所有任务
@@ -39,3 +43,6 @@ Debug APK 分别输出到：
 - `build/app/outputs/flutter-apk/app-x86_64-release.apk`：本机 x64 模拟器 Release 包。
 
 当前 Android 配置使用调试密钥签署 Release APK，适合本机安装测试；正式发布前需要配置独立的发布密钥。
+
+Windows Debug 输出到 `build/windows/x64/runner/Debug/`。分发 Windows
+版本时需要保留输出目录内的 EXE、DLL 和 `data` 目录，不能只复制 EXE。

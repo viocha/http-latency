@@ -36,9 +36,19 @@ class _AppShellState extends State<AppShell> {
               ),
           ],
         ),
-        body: IndexedStack(
-          index: index,
-          children: [TestPage(c), HistoryPage(c), SettingsPage(c)],
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final horizontal = constraints.maxWidth > 760
+                ? (constraints.maxWidth - 760) / 2
+                : 0.0;
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontal),
+              child: IndexedStack(
+                index: index,
+                children: [TestPage(c), HistoryPage(c), SettingsPage(c)],
+              ),
+            );
+          },
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: index,
@@ -77,39 +87,52 @@ class TestPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            Card(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 12, 6),
-                    child: Row(
+            Semantics(
+              container: true,
+              enabled: !c.isRunning,
+              child: IgnorePointer(
+                ignoring: c.isRunning,
+                child: AnimatedOpacity(
+                  opacity: c.isRunning ? 0.55 : 1,
+                  duration: const Duration(milliseconds: 150),
+                  child: Card(
+                    child: Column(
                       children: [
-                        const Text('次数'),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: SegmentedButton<int>(
-                            showSelectedIcon: false,
-                            segments: [
-                              for (var n = 1; n <= 5; n++)
-                                ButtonSegment(value: n, label: Text('$n')),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 12, 6),
+                          child: Row(
+                            children: [
+                              const Text('次数'),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: SegmentedButton<int>(
+                                  showSelectedIcon: false,
+                                  segments: [
+                                    for (var n = 1; n <= 5; n++)
+                                      ButtonSegment(
+                                        value: n,
+                                        label: Text('$n'),
+                                      ),
+                                  ],
+                                  selected: {c.repetitions},
+                                  onSelectionChanged: (values) =>
+                                      c.setRepetitions(values.first),
+                                ),
+                              ),
                             ],
-                            selected: {c.repetitions},
-                            onSelectionChanged: c.isRunning
-                                ? null
-                                : (values) => c.setRepetitions(values.first),
                           ),
+                        ),
+                        SwitchListTile(
+                          dense: true,
+                          value: c.warmUp,
+                          onChanged: c.setWarmUp,
+                          title: const Text('预热'),
+                          subtitle: const Text('每个 URL 先完整请求一次，不计入统计'),
                         ),
                       ],
                     ),
                   ),
-                  SwitchListTile(
-                    dense: true,
-                    value: c.warmUp,
-                    onChanged: c.isRunning ? null : c.setWarmUp,
-                    title: const Text('预热'),
-                    subtitle: const Text('每个 URL 先完整请求一次，不计入统计'),
-                  ),
-                ],
+                ),
               ),
             ),
           ],
@@ -438,20 +461,42 @@ class HistoryPage extends StatelessWidget {
                 run.network.city,
               );
               final ip = run.network.ip ?? '公网 IP 未知';
+              final average = run.overallAverageMs;
               return Card(
                 child: ListTile(
+                  contentPadding: const EdgeInsets.only(left: 16, right: 4),
                   onTap: () => showDialog<void>(
                     context: context,
                     builder: (_) => HistoryDetail(run),
                   ),
-                  leading: const CircleAvatar(child: Icon(Icons.speed)),
-                  title: Text(formatDateTime(run.startedAt)),
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          formatDateTime(run.startedAt),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        average == null ? '无有效结果' : '${average.round()} ms',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: average == null
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                   subtitle: Text(
                     '${run.network.connectionType} · $ip${location.isEmpty ? '' : '\n$location'}',
                   ),
                   isThreeLine: location.isNotEmpty,
                   trailing: IconButton(
                     onPressed: () => c.deleteHistory(run.id),
+                    tooltip: '删除记录',
                     icon: const Icon(Icons.delete_outline),
                   ),
                 ),
@@ -497,49 +542,57 @@ class HistoryDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final network = run.network;
     final location = formatCountryAndCity(network.country, network.city);
-    return Dialog.fullscreen(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('历史详情'),
-          leading: IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close),
-          ),
+    final content = Scaffold(
+      appBar: AppBar(
+        title: const Text('历史详情'),
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close),
         ),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    InfoRow('时间', formatDateTime(run.startedAt)),
-                    InfoRow('网络', network.connectionType),
-                    InfoRow('公网 IP', network.ip ?? '—'),
-                    InfoRow('国家/城市', location.isEmpty ? '—' : location),
-                    InfoRow('运营商', network.isp ?? '—'),
-                    InfoRow(
-                      '查询时间',
-                      network.updatedAt == null
-                          ? '—'
-                          : formatDateTime(network.updatedAt!),
-                    ),
-                    InfoRow(
-                      '设置',
-                      '${run.repetitions} 次 · ${run.warmUp ? '已预热' : '未预热'}',
-                    ),
-                  ],
-                ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  InfoRow('时间', formatDateTime(run.startedAt)),
+                  InfoRow('网络', network.connectionType),
+                  InfoRow('公网 IP', network.ip ?? '—'),
+                  InfoRow('国家/城市', location.isEmpty ? '—' : location),
+                  InfoRow('运营商', network.isp ?? '—'),
+                  InfoRow(
+                    '查询时间',
+                    network.updatedAt == null
+                        ? '—'
+                        : formatDateTime(network.updatedAt!),
+                  ),
+                  InfoRow(
+                    '设置',
+                    '${run.repetitions} 次 · ${run.warmUp ? '已预热' : '未预热'}',
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            for (final result in run.results) ...[
-              ResultCard(result),
-              const SizedBox(height: 10),
-            ],
+          ),
+          const SizedBox(height: 16),
+          for (final result in run.results) ...[
+            ResultCard(result),
+            const SizedBox(height: 10),
           ],
-        ),
+        ],
+      ),
+    );
+    final size = MediaQuery.sizeOf(context);
+    if (size.width < 800) return Dialog.fullscreen(child: content);
+    return Dialog(
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        width: 720,
+        height: (size.height - 64).clamp(480, 760),
+        child: content,
       ),
     );
   }

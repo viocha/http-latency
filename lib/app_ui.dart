@@ -77,13 +77,28 @@ class TestPage extends StatelessWidget {
           children: [
             NetworkCard(c),
             const SizedBox(height: 10),
-            Card(
-              child: ListTile(
-                onTap: c.isRunning ? null : () => _showTargetPicker(context),
-                leading: const Icon(Icons.checklist_rounded),
-                title: const Text('测试目标'),
-                subtitle: Text('已选择 ${c.selectedCount}/${c.targets.length}'),
-                trailing: const Icon(Icons.chevron_right),
+            Semantics(
+              container: true,
+              enabled: !c.isRunning,
+              child: IgnorePointer(
+                ignoring: c.isRunning,
+                child: AnimatedOpacity(
+                  opacity: c.isRunning ? 0.55 : 1,
+                  duration: const Duration(milliseconds: 150),
+                  child: Card(
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                      onTap: () => _showTargetPicker(context),
+                      title: const Text('测试目标'),
+                      subtitle: Text(
+                        '已选择 ${c.selectedCount}/${c.targets.length}',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -99,7 +114,7 @@ class TestPage extends StatelessWidget {
                     child: Column(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 12, 6),
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
                           child: Row(
                             children: [
                               const Text('次数'),
@@ -124,6 +139,10 @@ class TestPage extends StatelessWidget {
                         ),
                         SwitchListTile(
                           dense: true,
+                          contentPadding: const EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                          ),
                           value: c.warmUp,
                           onChanged: c.setWarmUp,
                           title: const Text('预热'),
@@ -315,21 +334,20 @@ class NetworkCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final n = c.network;
+    final isInitialDetection = n.connectionType == '检测中';
     final place = formatCountryAndCity(n.country, n.city);
     return Card(
       color: Theme.of(context).colorScheme.primaryContainer,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 8, 12),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.public),
-                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${n.connectionType}  ·  ${n.ip ?? '公网 IP 未知'}',
+                    isInitialDetection ? '检测中' : n.connectionType,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w600),
@@ -347,18 +365,17 @@ class NetworkCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (place.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(left: 32),
-                child: Text(
-                  place,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+            if (!isInitialDetection)
+              Text(
+                n.ip ?? '公网 IP 未知',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
+            if (place.isNotEmpty)
+              Text(place, maxLines: 1, overflow: TextOverflow.ellipsis),
             if (n.isp?.isNotEmpty == true)
               Padding(
-                padding: const EdgeInsets.only(left: 32, top: 2),
+                padding: const EdgeInsets.only(top: 2),
                 child: Text(
                   n.isp!,
                   maxLines: 1,
@@ -464,7 +481,7 @@ class HistoryPage extends StatelessWidget {
               final average = run.overallAverageMs;
               return Card(
                 child: ListTile(
-                  contentPadding: const EdgeInsets.only(left: 16, right: 4),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                   onTap: () => showDialog<void>(
                     context: context,
                     builder: (_) => HistoryDetail(run),
@@ -491,9 +508,11 @@ class HistoryPage extends StatelessWidget {
                     ],
                   ),
                   subtitle: Text(
-                    '${run.network.connectionType} · $ip${location.isEmpty ? '' : '\n$location'}',
+                    '${run.network.connectionType}\n$ip${location.isEmpty ? '' : '\n$location'}',
+                    maxLines: location.isEmpty ? 2 : 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  isThreeLine: location.isNotEmpty,
+                  isThreeLine: true,
                   trailing: IconButton(
                     onPressed: () => c.deleteHistory(run.id),
                     tooltip: '删除记录',
@@ -610,7 +629,6 @@ class SettingsPage extends StatelessWidget {
       children: [
         SectionTitle(
           '自定义 URL',
-          subtitle: '新增后默认不选中',
           trailing: FilledButton.tonalIcon(
             onPressed: c.isRunning ? null : () => editTarget(context),
             icon: const Icon(Icons.add),
@@ -693,68 +711,92 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Future<void> editTarget(BuildContext context, [TestTarget? target]) async {
-    final name = TextEditingController(text: target?.name ?? '');
-    final url = TextEditingController(text: target?.url ?? 'https://');
-    String? error;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(target == null ? '添加自定义 URL' : '编辑自定义 URL'),
-          content: SizedBox(
-            width: 420,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: name,
-                  decoration: const InputDecoration(labelText: '名称'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: url,
-                  keyboardType: TextInputType.url,
-                  autocorrect: false,
-                  decoration: InputDecoration(
-                    labelText: 'URL',
-                    errorText: error,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (name.text.trim().isEmpty) {
-                  setState(() => error = '请输入名称');
-                  return;
-                }
-                try {
-                  if (target == null) {
-                    c.addCustomTarget(name.text, url.text);
-                  } else {
-                    c.updateCustomTarget(target.id, name.text, url.text);
-                  }
-                  Navigator.pop(context);
-                } on FormatException catch (e) {
-                  setState(() => error = e.message.toString());
-                }
-              },
-              child: const Text('保存'),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> editTarget(BuildContext context, [TestTarget? target]) =>
+      showDialog<void>(
+        context: context,
+        builder: (context) =>
+            _TargetEditorDialog(controller: c, target: target),
+      );
+}
+
+class _TargetEditorDialog extends StatefulWidget {
+  const _TargetEditorDialog({required this.controller, this.target});
+
+  final AppController controller;
+  final TestTarget? target;
+
+  @override
+  State<_TargetEditorDialog> createState() => _TargetEditorDialogState();
+}
+
+class _TargetEditorDialogState extends State<_TargetEditorDialog> {
+  late final TextEditingController name;
+  late final TextEditingController url;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    name = TextEditingController(text: widget.target?.name ?? '');
+    url = TextEditingController(text: widget.target?.url ?? 'https://');
+  }
+
+  @override
+  void dispose() {
     name.dispose();
     url.dispose();
+    super.dispose();
   }
+
+  void save() {
+    if (name.text.trim().isEmpty) {
+      setState(() => error = '请输入名称');
+      return;
+    }
+    try {
+      final target = widget.target;
+      if (target == null) {
+        widget.controller.addCustomTarget(name.text, url.text);
+      } else {
+        widget.controller.updateCustomTarget(target.id, name.text, url.text);
+      }
+      Navigator.pop(context);
+    } on FormatException catch (exception) {
+      setState(() => error = exception.message.toString());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.target == null ? '添加自定义 URL' : '编辑自定义 URL'),
+    content: SizedBox(
+      width: 420,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: name,
+            decoration: const InputDecoration(labelText: '名称'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: url,
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            decoration: InputDecoration(labelText: 'URL', errorText: error),
+            onSubmitted: (_) => save(),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('取消'),
+      ),
+      FilledButton(onPressed: save, child: const Text('保存')),
+    ],
+  );
 }
 
 class SectionTitle extends StatelessWidget {

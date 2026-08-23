@@ -2,20 +2,6 @@ import 'dart:convert';
 
 const builtInTargets = <TestTarget>[
   TestTarget(
-    id: 'google',
-    name: 'Google',
-    url: 'https://www.google.com/',
-    isBuiltIn: true,
-    selected: true,
-  ),
-  TestTarget(
-    id: 'youtube',
-    name: 'YouTube',
-    url: 'https://www.youtube.com/',
-    isBuiltIn: true,
-    selected: true,
-  ),
-  TestTarget(
     id: 'github',
     name: 'GitHub',
     url: 'https://github.com/',
@@ -28,6 +14,20 @@ const builtInTargets = <TestTarget>[
     url: 'https://chatgpt.com/',
     isBuiltIn: true,
     selected: true,
+  ),
+  TestTarget(
+    id: 'google',
+    name: 'Google',
+    url: 'https://www.google.com/',
+    isBuiltIn: true,
+    selected: false,
+  ),
+  TestTarget(
+    id: 'youtube',
+    name: 'YouTube',
+    url: 'https://www.youtube.com/',
+    isBuiltIn: true,
+    selected: false,
   ),
   TestTarget(
     id: 'x',

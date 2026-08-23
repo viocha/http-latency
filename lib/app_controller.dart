@@ -173,6 +173,7 @@ class AppController extends ChangeNotifier {
     final tester = LatencyTester(timeout: Duration(seconds: timeoutSeconds));
     _tester = tester;
     var cancelled = false;
+    var hasValidResults = false;
     notifyListeners();
 
     try {
@@ -213,11 +214,18 @@ class AppController extends ChangeNotifier {
       _tester = null;
       isRunning = false;
       isCancelling = false;
-      currentStatus = cancelled ? '测试已取消' : '测试完成';
+      hasValidResults = currentResults.any(
+        (result) => result.samples.any((sample) => sample.succeeded),
+      );
+      currentStatus = cancelled
+          ? '测试已取消'
+          : hasValidResults
+          ? '测试完成'
+          : '测试完成，无有效结果';
       notifyListeners();
     }
 
-    if (!cancelled) {
+    if (!cancelled && hasValidResults) {
       final run = TestRun(
         id: startedAt.microsecondsSinceEpoch.toString(),
         startedAt: startedAt,

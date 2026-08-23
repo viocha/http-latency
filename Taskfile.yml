@@ -1,0 +1,66 @@
+version: '3'
+
+tasks:
+  default:
+    desc: 检查并构建两个单架构 Debug APK
+    cmds:
+      - task: check
+      - task: build
+
+  get:
+    desc: 安装 Flutter 依赖
+    cmds:
+      - flutter pub get
+
+  format:
+    desc: 格式化 Dart 源码与测试
+    cmds:
+      - dart format lib test
+
+  analyze:
+    desc: 运行 Flutter 静态检查
+    cmds:
+      - flutter analyze
+
+  test:
+    desc: 运行全部测试
+    cmds:
+      - flutter test
+
+  check:
+    desc: 依次运行静态检查和测试
+    cmds:
+      - task: analyze
+      - task: test
+
+  arm64:
+    desc: 构建手机用 arm64-v8a Debug APK
+    cmds:
+      - flutter build apk --debug --target-platform android-arm64 --split-per-abi
+
+  x64:
+    desc: 构建模拟器用 x86_64 Debug APK
+    cmds:
+      - flutter build apk --debug --target-platform android-x64 --split-per-abi
+
+  build:
+    desc: 依次构建 arm64-v8a 与 x86_64 Debug APK
+    cmds:
+      - task: arm64
+      - task: x64
+
+  release-arm64:
+    desc: 构建手机用 arm64-v8a Release APK
+    cmds:
+      - flutter build apk --release --target-platform android-arm64 --split-per-abi
+
+  release-x64:
+    desc: 构建模拟器用 x86_64 Release APK
+    cmds:
+      - flutter build apk --release --target-platform android-x64 --split-per-abi
+
+  release:
+    desc: 依次构建 arm64-v8a 与 x86_64 Release APK
+    cmds:
+      - task: release-arm64
+      - task: release-x64

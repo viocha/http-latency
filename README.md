@@ -4,7 +4,7 @@
 
 ## 功能
 
-- 内置 Google、YouTube、GitHub、ChatGPT、X、Facebook、Instagram 和 Wikipedia。
+- 内置 ChatGPT、Gemini、GitHub、Google、YouTube、X、Facebook、Instagram 和 Wikipedia。
 - 首次启动默认选择前四项，预热默认开启，支持每个 URL 测试 1–5 次。
 - 串行读取完整响应，统计最小值、最大值和平均值。
 - 支持自定义 HTTP/HTTPS URL、3/5/10/15 秒超时、取消以及 10 MB 响应上限。

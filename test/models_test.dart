@@ -56,12 +56,12 @@ void main() {
     });
   });
 
-  test('default selection contains GitHub and ChatGPT', () {
+  test('default selection contains ChatGPT and Gemini', () {
     expect(
       builtInTargets
           .where((target) => target.selected)
           .map((target) => target.id),
-      ['github', 'chatgpt'],
+      ['chatgpt', 'gemini'],
     );
   });
 

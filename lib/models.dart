@@ -2,18 +2,25 @@ import 'dart:convert';
 
 const builtInTargets = <TestTarget>[
   TestTarget(
-    id: 'github',
-    name: 'GitHub',
-    url: 'https://github.com/',
-    isBuiltIn: true,
-    selected: true,
-  ),
-  TestTarget(
     id: 'chatgpt',
     name: 'ChatGPT',
     url: 'https://chatgpt.com/',
     isBuiltIn: true,
     selected: true,
+  ),
+  TestTarget(
+    id: 'gemini',
+    name: 'Gemini',
+    url: 'https://gemini.google.com/',
+    isBuiltIn: true,
+    selected: true,
+  ),
+  TestTarget(
+    id: 'github',
+    name: 'GitHub',
+    url: 'https://github.com/',
+    isBuiltIn: true,
+    selected: false,
   ),
   TestTarget(
     id: 'google',

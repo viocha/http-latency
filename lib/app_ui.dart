@@ -412,6 +412,8 @@ class ResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     child: ExpansionTile(
+      shape: const Border(),
+      collapsedShape: const Border(),
       title: Text(result.target.name),
       subtitle: Text(
         testing

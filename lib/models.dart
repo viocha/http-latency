@@ -302,9 +302,9 @@ String formatBytes(int bytes) {
 String formatDuration(int? milliseconds) =>
     milliseconds == null ? '—' : '$milliseconds ms';
 
-String formatCountryAndCity(String? country, String? city) {
+String _joinNonEmptyParts(List<String?> items) {
   final parts = <String>[];
-  for (final value in [country, city]) {
+  for (final value in items) {
     final normalized = value?.trim();
     if (normalized == null || normalized.isEmpty) {
       continue;
@@ -316,3 +316,9 @@ String formatCountryAndCity(String? country, String? city) {
   }
   return parts.join(' · ');
 }
+
+String formatCountryAndCity(String? country, String? city) =>
+    _joinNonEmptyParts([country, city]);
+
+String formatCountryAndIsp(String? country, String? isp) =>
+    _joinNonEmptyParts([country, isp]);

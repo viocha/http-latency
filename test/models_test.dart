@@ -78,6 +78,26 @@ void main() {
     });
   });
 
+  group('country and isp display', () {
+    test('removes repeated isp if identical to country', () {
+      expect(formatCountryAndIsp('Hong Kong', 'Hong Kong'), 'Hong Kong');
+    });
+
+    test('keeps country and isp names', () {
+      expect(
+        formatCountryAndIsp('China', 'China Telecom'),
+        'China · China Telecom',
+      );
+    });
+
+    test('handles null and empty values', () {
+      expect(formatCountryAndIsp('China', null), 'China');
+      expect(formatCountryAndIsp(null, 'China Telecom'), 'China Telecom');
+      expect(formatCountryAndIsp(null, null), '');
+      expect(formatCountryAndIsp('  ', ''), '');
+    });
+  });
+
   group('URL validation', () {
     test('accepts complete HTTP URLs', () {
       expect(

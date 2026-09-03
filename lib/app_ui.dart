@@ -475,9 +475,9 @@ class HistoryPage extends StatelessWidget {
         for (final run in c.history) ...[
           Builder(
             builder: (context) {
-              final location = formatCountryAndCity(
+              final networkInfo = formatCountryAndIsp(
                 run.network.country,
-                run.network.city,
+                run.network.isp,
               );
               final ip = run.network.ip ?? '公网 IP 未知';
               final average = run.overallAverageMs;
@@ -510,8 +510,8 @@ class HistoryPage extends StatelessWidget {
                     ],
                   ),
                   subtitle: Text(
-                    '${run.network.connectionType}\n$ip${location.isEmpty ? '' : '\n$location'}',
-                    maxLines: location.isEmpty ? 2 : 3,
+                    '${run.network.connectionType}\n$ip${networkInfo.isEmpty ? '' : '\n$networkInfo'}',
+                    maxLines: networkInfo.isEmpty ? 2 : 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                   isThreeLine: true,

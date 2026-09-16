@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'app_controller.dart';
@@ -13,6 +15,23 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int index = 0;
+  bool _showInitialLoading = false;
+  Timer? _initialLoadingTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialLoadingTimer = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted || widget.controller.initialized) return;
+      setState(() => _showInitialLoading = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _initialLoadingTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -20,7 +39,11 @@ class _AppShellState extends State<AppShell> {
     builder: (context, _) {
       final c = widget.controller;
       if (!c.initialized) {
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return Scaffold(
+          body: _showInitialLoading
+              ? const Center(child: CircularProgressIndicator())
+              : const SizedBox.expand(),
+        );
       }
       return Scaffold(
         appBar: AppBar(

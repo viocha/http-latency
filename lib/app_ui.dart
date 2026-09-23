@@ -160,16 +160,20 @@ class TestPage extends StatelessWidget {
                             ],
                           ),
                         ),
-                        SwitchListTile(
-                          dense: true,
-                          contentPadding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                          ),
-                          value: c.warmUp,
-                          onChanged: c.setWarmUp,
+                        const Divider(height: 1),
+                        ListTile(
                           title: const Text('预热'),
-                          subtitle: const Text('每个 URL 先完整请求一次，不计入统计'),
+                          subtitle: const Text('每个 URL 的预热请求不计入统计'),
+                          trailing: DropdownButton<int>(
+                            value: c.warmUpCount,
+                            items: [
+                              for (var n = 0; n <= 5; n++)
+                                DropdownMenuItem(value: n, child: Text('$n 次')),
+                            ],
+                            onChanged: (n) {
+                              if (n != null) c.setWarmUpCount(n);
+                            },
+                          ),
                         ),
                       ],
                     ),
@@ -615,7 +619,7 @@ class HistoryDetail extends StatelessWidget {
                   ),
                   InfoRow(
                     '设置',
-                    '${run.repetitions} 次 · ${run.warmUp ? '已预热' : '未预热'}',
+                    '${run.repetitions} 次 · 预热 ${run.warmUpCount} 次',
                   ),
                 ],
               ),

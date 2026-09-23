@@ -9,13 +9,13 @@ class SavedConfiguration {
   const SavedConfiguration({
     required this.targets,
     required this.repetitions,
-    required this.warmUp,
+    required this.warmUpCount,
     required this.timeoutSeconds,
   });
 
   final List<TestTarget> targets;
   final int repetitions;
-  final bool warmUp;
+  final int warmUpCount;
   final int timeoutSeconds;
 }
 
@@ -80,9 +80,8 @@ class AppDatabase {
       targets: targets,
       repetitions:
           int.tryParse(settings['repetitions'] ?? '')?.clamp(1, 5) ?? 3,
-      warmUp: settings['warm_up'] == null
-          ? true
-          : settings['warm_up'] == 'true',
+      warmUpCount:
+          int.tryParse(settings['warm_up_count'] ?? '')?.clamp(0, 5) ?? 1,
       timeoutSeconds: _supportedTimeout(settings['timeout_seconds']),
     );
   }
@@ -110,7 +109,7 @@ class AppDatabase {
     put('selected_ids', jsonEncode(selectedIds));
     put('custom_targets', jsonEncode(customTargets));
     put('repetitions', configuration.repetitions.toString());
-    put('warm_up', configuration.warmUp.toString());
+    put('warm_up_count', configuration.warmUpCount.toString());
     put('timeout_seconds', configuration.timeoutSeconds.toString());
     await batch.commit(noResult: true);
   }

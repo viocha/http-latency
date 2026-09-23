@@ -20,7 +20,7 @@ class AppController extends ChangeNotifier {
   bool isCancelling = false;
   bool isLoadingNetwork = false;
   int repetitions = 3;
-  bool warmUp = true;
+  int warmUpCount = 1;
   int timeoutSeconds = 10;
   int completedOperations = 0;
   int totalOperations = 0;
@@ -31,6 +31,7 @@ class AppController extends ChangeNotifier {
   List<TargetResult> currentResults = [];
   List<TestRun> history = [];
   LatencyTester? _tester;
+  Future<NetworkSnapshot>? _networkRefresh;
 
   double get progress =>
       totalOperations == 0 ? 0 : completedOperations / totalOperations;
@@ -41,7 +42,7 @@ class AppController extends ChangeNotifier {
       final configuration = await _database.loadConfiguration();
       targets = configuration.targets;
       repetitions = configuration.repetitions;
-      warmUp = configuration.warmUp;
+      warmUpCount = configuration.warmUpCount;
       timeoutSeconds = configuration.timeoutSeconds;
       history = await _database.loadHistory();
     } catch (error) {
@@ -52,13 +53,24 @@ class AppController extends ChangeNotifier {
     unawaited(refreshNetwork());
   }
 
-  Future<void> refreshNetwork() async {
-    if (isLoadingNetwork) return;
+  Future<NetworkSnapshot> refreshNetwork() {
+    if (_networkRefresh case final pending?) return pending;
+    final pending = _loadNetwork();
+    _networkRefresh = pending;
+    return pending;
+  }
+
+  Future<NetworkSnapshot> _loadNetwork() async {
     isLoadingNetwork = true;
     notifyListeners();
-    network = await _networkService.load();
-    isLoadingNetwork = false;
-    notifyListeners();
+    try {
+      network = await _networkService.load();
+      return network;
+    } finally {
+      isLoadingNetwork = false;
+      _networkRefresh = null;
+      notifyListeners();
+    }
   }
 
   void setTargetSelected(String id, bool selected) {
@@ -89,9 +101,9 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setWarmUp(bool value) {
-    if (isRunning) return;
-    warmUp = value;
+  void setWarmUpCount(int value) {
+    if (isRunning || value < 0 || value > 5) return;
+    warmUpCount = value;
     _persistConfiguration();
     notifyListeners();
   }
@@ -146,7 +158,7 @@ class AppController extends ChangeNotifier {
         .map((target) => target.copyWith(selected: false));
     targets = [...builtInTargets, ...custom];
     repetitions = 3;
-    warmUp = true;
+    warmUpCount = 1;
     timeoutSeconds = 10;
     _persistConfiguration();
     notifyListeners();
@@ -167,19 +179,24 @@ class AppController extends ChangeNotifier {
     isRunning = true;
     isCancelling = false;
     completedOperations = 0;
-    totalOperations = selected.length * (repetitions + (warmUp ? 1 : 0));
+    totalOperations = selected.length * (repetitions + warmUpCount);
     currentResults = [];
-    final startedAt = DateTime.now();
+    currentStatus = '正在刷新 IP 信息';
     final tester = LatencyTester(timeout: Duration(seconds: timeoutSeconds));
     _tester = tester;
     var cancelled = false;
     var hasValidResults = false;
+    late NetworkSnapshot runNetwork;
+    late DateTime startedAt;
     notifyListeners();
 
     try {
+      runNetwork = await refreshNetwork();
+      if (isCancelling) throw const TestCancelledException();
+      startedAt = DateTime.now();
       for (final target in selected) {
-        if (warmUp) {
-          currentStatus = '${target.name} · 预热';
+        for (var index = 1; index <= warmUpCount; index++) {
+          currentStatus = '${target.name} · 预热 $index/$warmUpCount';
           notifyListeners();
           await tester.measure(target.url, 0);
           completedOperations++;
@@ -231,8 +248,8 @@ class AppController extends ChangeNotifier {
         startedAt: startedAt,
         completedAt: DateTime.now(),
         repetitions: repetitions,
-        warmUp: warmUp,
-        network: network,
+        warmUpCount: warmUpCount,
+        network: runNetwork,
         results: List.of(currentResults),
       );
       await _database.saveRun(run);
@@ -271,7 +288,7 @@ class AppController extends ChangeNotifier {
     SavedConfiguration(
       targets: targets,
       repetitions: repetitions,
-      warmUp: warmUp,
+      warmUpCount: warmUpCount,
       timeoutSeconds: timeoutSeconds,
     ),
   );

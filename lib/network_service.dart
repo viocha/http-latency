@@ -8,12 +8,13 @@ import 'models.dart';
 
 class NetworkService {
   Future<NetworkSnapshot> load() async {
-    final connectivity = await Connectivity().checkConnectivity();
-    final connectionType = _connectionLabel(connectivity);
+    var connectionType = '未知';
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 10)
       ..idleTimeout = const Duration(seconds: 10);
     try {
+      final connectivity = await Connectivity().checkConnectivity();
+      connectionType = _connectionLabel(connectivity);
       final request = await client.getUrl(Uri.parse('https://ipwho.is/'));
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.set(HttpHeaders.userAgentHeader, 'HTTP-Latency/1.0');
@@ -32,6 +33,9 @@ class NetworkService {
         throw HttpException(json['message']?.toString() ?? 'IP 服务暂时不可用');
       }
       final ip = json['ip']?.toString();
+      if (ip == null || InternetAddress.tryParse(ip) == null) {
+        throw const FormatException('公网 IP 服务响应缺少有效 IP');
+      }
       final connection = json['connection'] is Map
           ? Map<String, dynamic>.from(json['connection'] as Map)
           : const <String, dynamic>{};
@@ -39,8 +43,7 @@ class NetworkService {
         connectionType: connectionType,
         ip: ip,
         ipVersion:
-            json['type']?.toString() ??
-            (ip?.contains(':') == true ? 'IPv6' : 'IPv4'),
+            json['type']?.toString() ?? (ip.contains(':') ? 'IPv6' : 'IPv4'),
         country: json['country']?.toString(),
         city: json['city']?.toString(),
         isp: connection['isp']?.toString() ?? connection['org']?.toString(),

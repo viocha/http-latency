@@ -241,7 +241,7 @@ class TestRun {
     required this.startedAt,
     required this.completedAt,
     required this.repetitions,
-    required this.warmUp,
+    required this.warmUpCount,
     required this.network,
     required this.results,
   });
@@ -250,7 +250,7 @@ class TestRun {
   final DateTime startedAt;
   final DateTime completedAt;
   final int repetitions;
-  final bool warmUp;
+  final int warmUpCount;
   final NetworkSnapshot network;
   final List<TargetResult> results;
 
@@ -267,7 +267,7 @@ class TestRun {
     'startedAt': startedAt.toIso8601String(),
     'completedAt': completedAt.toIso8601String(),
     'repetitions': repetitions,
-    'warmUp': warmUp,
+    'warmUpCount': warmUpCount,
     'network': network.toJson(),
     'results': results.map((result) => result.toJson()).toList(),
   });
@@ -279,7 +279,7 @@ class TestRun {
       startedAt: DateTime.parse(json['startedAt'] as String),
       completedAt: DateTime.parse(json['completedAt'] as String),
       repetitions: json['repetitions'] as int,
-      warmUp: json['warmUp'] as bool,
+      warmUpCount: json['warmUpCount'] as int,
       network: NetworkSnapshot.fromJson(
         Map<String, Object?>.from(json['network'] as Map),
       ),

@@ -2,7 +2,7 @@ version: '3'
 
 tasks:
   default:
-    desc: 检查并构建两个单架构 Debug APK
+    desc: 检查并构建 arm64-v8a Debug APK
     cmds:
       - task: check
       - task: build
@@ -38,32 +38,26 @@ tasks:
     cmds:
       - flutter build apk --debug --target-platform android-arm64 --split-per-abi
 
-  x64:
-    desc: 构建模拟器用 x86_64 Debug APK
-    cmds:
-      - flutter build apk --debug --target-platform android-x64 --split-per-abi
-
   build:
-    desc: 依次构建 arm64-v8a 与 x86_64 Debug APK
+    desc: 构建 arm64-v8a Debug APK
     cmds:
       - task: arm64
-      - task: x64
+
+  install-usb:
+    desc: 构建 Debug APK 并安装到 USB 设备
+    cmds:
+      - task: arm64
+      - adb -d install -r build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk
 
   release-arm64:
     desc: 构建手机用 arm64-v8a Release APK
     cmds:
       - flutter build apk --release --target-platform android-arm64 --split-per-abi
 
-  release-x64:
-    desc: 构建模拟器用 x86_64 Release APK
-    cmds:
-      - flutter build apk --release --target-platform android-x64 --split-per-abi
-
   release:
-    desc: 依次构建 arm64-v8a 与 x86_64 Release APK
+    desc: 构建 arm64-v8a Release APK
     cmds:
       - task: release-arm64
-      - task: release-x64
 
   windows-run:
     desc: 在 Windows 桌面运行 Debug 版本

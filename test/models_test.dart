@@ -125,7 +125,7 @@ void main() {
       startedAt: now,
       completedAt: now.add(const Duration(seconds: 1)),
       repetitions: 1,
-      warmUp: true,
+      warmUpCount: 3,
       network: NetworkSnapshot(
         connectionType: 'Wi‑Fi',
         ip: '203.0.113.1',
@@ -157,6 +157,7 @@ void main() {
     expect(decoded.network.city, 'Los Angeles');
     expect(decoded.network.isp, 'Example ISP');
     expect(decoded.network.updatedAt, now);
+    expect(decoded.warmUpCount, 3);
     expect(decoded.results.single.samples.single.durationMs, 120);
   });
 }

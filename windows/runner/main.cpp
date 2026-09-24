@@ -2,6 +2,8 @@
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 
+#include <algorithm>
+
 #include "flutter_window.h"
 #include "utils.h"
 
@@ -29,6 +31,24 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   Win32Window::Size size(900, 760);
   if (!window.Create(L"HTTP 延迟测试", origin, size)) {
     return EXIT_FAILURE;
+  }
+
+  // 在首次显示前，按窗口实际像素尺寸居中到所在显示器的工作区。
+  const HWND handle = window.GetHandle();
+  MONITORINFO monitor_info{sizeof(monitor_info)};
+  RECT window_rect;
+  if (::GetMonitorInfo(::MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST),
+                       &monitor_info) &&
+      ::GetWindowRect(handle, &window_rect)) {
+    const RECT& work_area = monitor_info.rcWork;
+    const LONG width = window_rect.right - window_rect.left;
+    const LONG height = window_rect.bottom - window_rect.top;
+    const LONG x = work_area.left +
+                   std::max(0L, (work_area.right - work_area.left - width) / 2);
+    const LONG y = work_area.top +
+                   std::max(0L, (work_area.bottom - work_area.top - height) / 2);
+    ::SetWindowPos(handle, nullptr, x, y, 0, 0,
+                   SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
   }
   window.SetQuitOnClose(true);
 

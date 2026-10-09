@@ -134,37 +134,29 @@ class TestPage extends StatelessWidget {
                   opacity: c.isRunning ? 0.55 : 1,
                   duration: const Duration(milliseconds: 150),
                   child: Card(
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-                          child: Row(
-                            children: [
-                              const Text('次数'),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: SegmentedButton<int>(
-                                  showSelectedIcon: false,
-                                  segments: [
-                                    for (var n = 1; n <= 5; n++)
-                                      ButtonSegment(
-                                        value: n,
-                                        label: Text('$n'),
-                                      ),
-                                  ],
-                                  selected: {c.repetitions},
-                                  onSelectionChanged: (values) =>
-                                      c.setRepetitions(values.first),
-                                ),
-                              ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('次数'),
+                          const SizedBox(width: 12),
+                          DropdownButton<int>(
+                            value: c.repetitions,
+                            items: [
+                              for (var n = 1; n <= 5; n++)
+                                DropdownMenuItem(value: n, child: Text('$n 次')),
                             ],
+                            onChanged: (n) {
+                              if (n != null) c.setRepetitions(n);
+                            },
                           ),
-                        ),
-                        const Divider(height: 1),
-                        ListTile(
-                          title: const Text('预热'),
-                          subtitle: const Text('每个 URL 的预热请求不计入统计'),
-                          trailing: DropdownButton<int>(
+                          const Spacer(),
+                          const Text('预热'),
+                          const SizedBox(width: 12),
+                          DropdownButton<int>(
                             value: c.warmUpCount,
                             items: [
                               for (var n = 0; n <= 5; n++)
@@ -174,8 +166,8 @@ class TestPage extends StatelessWidget {
                               if (n != null) c.setWarmUpCount(n);
                             },
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -189,6 +181,25 @@ class TestPage extends StatelessWidget {
         child: Row(
           children: [
             Text('本次结果', style: Theme.of(context).textTheme.titleMedium),
+            if (!c.isRunning && c.currentResults.isNotEmpty) ...[
+              const SizedBox(width: 12),
+              Builder(
+                builder: (context) {
+                  final average = TestRun.calculateOverallAverageMs(
+                    c.currentResults,
+                  );
+                  return Text(
+                    average == null ? '无有效结果' : '整体延迟 ${average.round()} ms',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: average == null
+                          ? Theme.of(context).colorScheme.error
+                          : Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  );
+                },
+              ),
+            ],
             const Spacer(),
             if (c.currentResults.isNotEmpty)
               Text(
@@ -534,6 +545,18 @@ class HistoryPage extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => c.deleteHistory(run.id),
+                        tooltip: '删除记录',
+                        constraints: const BoxConstraints.tightFor(
+                          width: 32,
+                          height: 32,
+                        ),
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.delete_outline),
+                      ),
                     ],
                   ),
                   subtitle: Text(
@@ -542,11 +565,6 @@ class HistoryPage extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   isThreeLine: true,
-                  trailing: IconButton(
-                    onPressed: () => c.deleteHistory(run.id),
-                    tooltip: '删除记录',
-                    icon: const Icon(Icons.delete_outline),
-                  ),
                 ),
               );
             },
@@ -671,32 +689,78 @@ class SettingsPage extends StatelessWidget {
                   padding: EdgeInsets.all(20),
                   child: Text('还没有自定义 URL'),
                 )
-              : Column(
+              : ReorderableListView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  buildDefaultDragHandles: false,
+                  onReorderItem: c.reorderCustomTargets,
                   children: [
-                    for (var i = 0; i < custom.length; i++) ...[
-                      ListTile(
-                        title: Text(custom[i].name),
-                        subtitle: Text(
-                          custom[i].url,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: Wrap(
-                          children: [
-                            IconButton(
-                              onPressed: () => editTarget(context, custom[i]),
-                              icon: const Icon(Icons.edit_outlined),
+                    for (var i = 0; i < custom.length; i++)
+                      Column(
+                        key: ValueKey(custom[i].id),
+                        children: [
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
                             ),
-                            IconButton(
-                              onPressed: () =>
-                                  c.deleteCustomTarget(custom[i].id),
-                              icon: const Icon(Icons.delete_outline),
+                            minLeadingWidth: 24,
+                            horizontalTitleGap: 8,
+                            leading: ReorderableDragStartListener(
+                              index: i,
+                              enabled: !c.isRunning,
+                              child: Tooltip(
+                                message: '拖动排序',
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  child: Icon(
+                                    Icons.drag_handle,
+                                    color: c.isRunning
+                                        ? Theme.of(context).disabledColor
+                                        : null,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ],
-                        ),
+                            title: Text(custom[i].name),
+                            subtitle: Text(
+                              custom[i].url,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: Wrap(
+                              children: [
+                                IconButton(
+                                  tooltip: '编辑',
+                                  constraints: const BoxConstraints.tightFor(
+                                    width: 36,
+                                    height: 40,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () =>
+                                      editTarget(context, custom[i]),
+                                  icon: const Icon(Icons.edit_outlined),
+                                ),
+                                IconButton(
+                                  tooltip: '删除',
+                                  constraints: const BoxConstraints.tightFor(
+                                    width: 36,
+                                    height: 40,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () =>
+                                      confirmDeleteTarget(context, custom[i]),
+                                  icon: const Icon(Icons.delete_outline),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (i < custom.length - 1) const Divider(height: 1),
+                        ],
                       ),
-                      if (i < custom.length - 1) const Divider(height: 1),
-                    ],
                   ],
                 ),
         ),
@@ -723,18 +787,15 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               const Divider(height: 1),
-              const ListTile(
-                title: Text('最大响应体'),
-                subtitle: Text('10 MB，流式读取'),
+              ListTile(
+                title: const Text('最大响应体'),
+                trailing: Text(
+                  '10 MB',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 20),
-        OutlinedButton.icon(
-          onPressed: c.isRunning ? null : c.restoreDefaults,
-          icon: const Icon(Icons.restore),
-          label: const Text('恢复默认设置'),
         ),
       ],
     );
@@ -746,6 +807,30 @@ class SettingsPage extends StatelessWidget {
         builder: (context) =>
             _TargetEditorDialog(controller: c, target: target),
       );
+
+  Future<void> confirmDeleteTarget(
+    BuildContext context,
+    TestTarget target,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除自定义 URL？'),
+        content: Text(target.name),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) c.deleteCustomTarget(target.id);
+  }
 }
 
 class _TargetEditorDialog extends StatefulWidget {

@@ -4,10 +4,11 @@
 
 ## 功能
 
-- 内置 ChatGPT、Gemini、GitHub、Google、YouTube、X、Facebook、Instagram 和 Wikipedia。
+- 内置 ChatGPT、Gemini、Google、GitHub、X、YouTube、Telegram 和 Reddit。
 - 首次启动默认选择 ChatGPT 和 Gemini；每个 URL 可预热 0–5 次、正式测试 1–5 次。
 - 串行读取完整响应，统计最小值、最大值和平均值。
 - 支持自定义 HTTP/HTTPS URL、3/5/10/15 秒超时、取消以及 10 MB 响应上限。
+- 设置中的自定义 URL 可通过左侧手柄拖动排序，顺序自动保存并用于目标选择和测速；测速期间禁止排序。
 - 通过无需 API Key 的 ipwho.is 显示公网 IP 和近似地理位置，不读取 Wi-Fi 名称。
 - 每次测试开始前刷新公网 IP；查询失败时记录未知 IP，不沿用旧地址。
 - 使用 SQLite 在本机保存最近 20 次完整测试结果。

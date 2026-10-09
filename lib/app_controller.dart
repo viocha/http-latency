@@ -152,6 +152,17 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void reorderCustomTargets(int oldIndex, int newIndex) {
+    if (isRunning) return;
+    final custom = targets.where((target) => !target.isBuiltIn).toList();
+    if (oldIndex == newIndex) return;
+    final target = custom.removeAt(oldIndex);
+    custom.insert(newIndex, target);
+    targets = [...targets.where((target) => target.isBuiltIn), ...custom];
+    _persistConfiguration();
+    notifyListeners();
+  }
+
   void restoreDefaults() {
     final custom = targets
         .where((target) => !target.isBuiltIn)

@@ -4,63 +4,56 @@ const builtInTargets = <TestTarget>[
   TestTarget(
     id: 'chatgpt',
     name: 'ChatGPT',
-    url: 'https://chatgpt.com/',
+    url: 'https://chatgpt.com',
     isBuiltIn: true,
     selected: true,
   ),
   TestTarget(
     id: 'gemini',
     name: 'Gemini',
-    url: 'https://gemini.google.com/',
+    url: 'https://gemini.google.com',
     isBuiltIn: true,
     selected: true,
   ),
   TestTarget(
-    id: 'github',
-    name: 'GitHub',
-    url: 'https://github.com/',
-    isBuiltIn: true,
-    selected: false,
-  ),
-  TestTarget(
     id: 'google',
     name: 'Google',
-    url: 'https://www.google.com/',
+    url: 'https://www.google.com',
     isBuiltIn: true,
     selected: false,
   ),
   TestTarget(
-    id: 'youtube',
-    name: 'YouTube',
-    url: 'https://www.youtube.com/',
+    id: 'github',
+    name: 'GitHub',
+    url: 'https://github.com',
     isBuiltIn: true,
     selected: false,
   ),
   TestTarget(
     id: 'x',
     name: 'X',
-    url: 'https://x.com/',
+    url: 'https://x.com',
     isBuiltIn: true,
     selected: false,
   ),
   TestTarget(
-    id: 'facebook',
-    name: 'Facebook',
-    url: 'https://www.facebook.com/',
+    id: 'youtube',
+    name: 'YouTube',
+    url: 'https://www.youtube.com',
     isBuiltIn: true,
     selected: false,
   ),
   TestTarget(
-    id: 'instagram',
-    name: 'Instagram',
-    url: 'https://www.instagram.com/',
+    id: 'telegram',
+    name: 'Telegram',
+    url: 'https://web.telegram.org/k',
     isBuiltIn: true,
     selected: false,
   ),
   TestTarget(
-    id: 'wikipedia',
-    name: 'Wikipedia',
-    url: 'https://www.wikipedia.org/',
+    id: 'reddit',
+    name: 'Reddit',
+    url: 'https://www.reddit.com',
     isBuiltIn: true,
     selected: false,
   ),
@@ -254,7 +247,9 @@ class TestRun {
   final NetworkSnapshot network;
   final List<TargetResult> results;
 
-  double? get overallAverageMs {
+  double? get overallAverageMs => calculateOverallAverageMs(results);
+
+  static double? calculateOverallAverageMs(Iterable<TargetResult> results) {
     final durations = results
         .expand((result) => result.successfulDurations)
         .toList(growable: false);

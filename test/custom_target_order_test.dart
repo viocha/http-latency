@@ -54,7 +54,7 @@ void main() {
     controller.dispose();
   });
 
-  testWidgets('拖动自定义 URL 后保存顺序，测速期间禁止拖动', (tester) async {
+  testWidgets('拖动自定义 URL 后保存顺序，测速期间也可以拖动', (tester) async {
     final database = _MemoryDatabase();
     final controller = AppController(database: database);
     const custom = [
@@ -128,17 +128,36 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(home: Scaffold(body: SettingsPage(controller))),
     );
-    await tester.drag(
+    final runningHandle = tester.getCenter(
       find.byIcon(Icons.drag_handle).first,
-      const Offset(0, 180),
+    );
+    final runningDestination = tester.getBottomLeft(
+      find.byKey(const ValueKey('c')),
+    );
+    final runningGesture = await tester.startGesture(runningHandle);
+    await runningGesture.moveTo(
+      Offset(runningHandle.dx, runningDestination.dy + 80),
     );
     await tester.pumpAndSettle();
-    controller.reorderCustomTargets(0, 2);
+    await runningGesture.up();
+    await tester.pumpAndSettle();
     expect(controller.targets.where((t) => !t.isBuiltIn).map((t) => t.id), [
-      'a',
       'b',
       'c',
+      'a',
     ]);
+    expect(database.saved!.targets.last.id, 'a');
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '添加'))
+          .onPressed,
+      isNotNull,
+    );
+    for (final dropdown in tester.widgetList<DropdownButton<int>>(
+      find.byType(DropdownButton<int>),
+    )) {
+      expect(dropdown.onChanged, isNotNull);
+    }
     controller.dispose();
   });
 }

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+const supportedTimeoutSeconds = [1, 2, 3, 5, 10, 15];
+
 const builtInTargets = <TestTarget>[
   TestTarget(
     id: 'chatgpt',
@@ -54,6 +56,27 @@ const builtInTargets = <TestTarget>[
     id: 'reddit',
     name: 'Reddit',
     url: 'https://www.reddit.com',
+    isBuiltIn: true,
+    selected: false,
+  ),
+  TestTarget(
+    id: 'cloudflare',
+    name: 'Cloudflare',
+    url: 'https://www.cloudflare.com',
+    isBuiltIn: true,
+    selected: false,
+  ),
+  TestTarget(
+    id: 'notion',
+    name: 'Notion',
+    url: 'https://www.notion.com',
+    isBuiltIn: true,
+    selected: false,
+  ),
+  TestTarget(
+    id: 'bing',
+    name: 'Bing',
+    url: 'https://www.bing.com',
     isBuiltIn: true,
     selected: false,
   ),

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
+import 'ip_lookup_provider.dart';
 import 'models.dart';
 import 'platform_services.dart';
 
@@ -11,12 +12,16 @@ class SavedConfiguration {
     required this.repetitions,
     required this.warmUpCount,
     required this.timeoutSeconds,
+    this.ipLookupProvider = IpLookupProvider.ipwhoIs,
+    this.ipLookupTimeoutSeconds = 3,
   });
 
   final List<TestTarget> targets;
   final int repetitions;
   final int warmUpCount;
   final int timeoutSeconds;
+  final IpLookupProvider ipLookupProvider;
+  final int ipLookupTimeoutSeconds;
 }
 
 class AppDatabase {
@@ -83,12 +88,17 @@ class AppDatabase {
       warmUpCount:
           int.tryParse(settings['warm_up_count'] ?? '')?.clamp(0, 5) ?? 1,
       timeoutSeconds: _supportedTimeout(settings['timeout_seconds']),
+      ipLookupProvider: IpLookupProvider.fromId(settings['ip_lookup_provider']),
+      ipLookupTimeoutSeconds: _supportedTimeout(
+        settings['ip_lookup_timeout_seconds'],
+        defaultValue: 3,
+      ),
     );
   }
 
-  int _supportedTimeout(String? savedValue) {
+  int _supportedTimeout(String? savedValue, {int defaultValue = 10}) {
     final value = int.tryParse(savedValue ?? '');
-    return const {3, 5, 10, 15}.contains(value) ? value! : 10;
+    return supportedTimeoutSeconds.contains(value) ? value! : defaultValue;
   }
 
   Future<void> saveConfiguration(SavedConfiguration configuration) async {
@@ -111,6 +121,11 @@ class AppDatabase {
     put('repetitions', configuration.repetitions.toString());
     put('warm_up_count', configuration.warmUpCount.toString());
     put('timeout_seconds', configuration.timeoutSeconds.toString());
+    put('ip_lookup_provider', configuration.ipLookupProvider.id);
+    put(
+      'ip_lookup_timeout_seconds',
+      configuration.ipLookupTimeoutSeconds.toString(),
+    );
     await batch.commit(noResult: true);
   }
 

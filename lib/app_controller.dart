@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'app_database.dart';
+import 'ip_lookup_provider.dart';
 import 'latency_tester.dart';
 import 'models.dart';
 import 'network_service.dart';
@@ -22,6 +23,9 @@ class AppController extends ChangeNotifier {
   int repetitions = 3;
   int warmUpCount = 1;
   int timeoutSeconds = 10;
+  int resultRepetitions = 3;
+  IpLookupProvider ipLookupProvider = IpLookupProvider.ipwhoIs;
+  int ipLookupTimeoutSeconds = 3;
   int completedOperations = 0;
   int totalOperations = 0;
   String currentStatus = '';
@@ -44,6 +48,8 @@ class AppController extends ChangeNotifier {
       repetitions = configuration.repetitions;
       warmUpCount = configuration.warmUpCount;
       timeoutSeconds = configuration.timeoutSeconds;
+      ipLookupProvider = configuration.ipLookupProvider;
+      ipLookupTimeoutSeconds = configuration.ipLookupTimeoutSeconds;
       history = await _database.loadHistory();
     } catch (error) {
       message = '读取本地数据失败：$error';
@@ -61,10 +67,15 @@ class AppController extends ChangeNotifier {
   }
 
   Future<NetworkSnapshot> _loadNetwork() async {
+    final provider = ipLookupProvider;
+    final timeout = Duration(seconds: ipLookupTimeoutSeconds);
     isLoadingNetwork = true;
     notifyListeners();
     try {
-      network = await _networkService.load();
+      network = await _networkService.load(
+        provider: provider,
+        timeout: timeout,
+      );
       return network;
     } finally {
       isLoadingNetwork = false;
@@ -74,7 +85,6 @@ class AppController extends ChangeNotifier {
   }
 
   void setTargetSelected(String id, bool selected) {
-    if (isRunning) return;
     targets = targets
         .map(
           (target) =>
@@ -86,7 +96,6 @@ class AppController extends ChangeNotifier {
   }
 
   void selectAll(bool selected) {
-    if (isRunning) return;
     targets = targets
         .map((target) => target.copyWith(selected: selected))
         .toList();
@@ -95,22 +104,39 @@ class AppController extends ChangeNotifier {
   }
 
   void setRepetitions(int value) {
-    if (isRunning || value < 1 || value > 5) return;
+    if (value < 1 || value > 5) return;
     repetitions = value;
     _persistConfiguration();
     notifyListeners();
   }
 
   void setWarmUpCount(int value) {
-    if (isRunning || value < 0 || value > 5) return;
+    if (value < 0 || value > 5) return;
     warmUpCount = value;
     _persistConfiguration();
     notifyListeners();
   }
 
   void setTimeoutSeconds(int value) {
-    if (isRunning || !const {3, 5, 10, 15}.contains(value)) return;
+    if (!supportedTimeoutSeconds.contains(value)) return;
     timeoutSeconds = value;
+    _persistConfiguration();
+    notifyListeners();
+  }
+
+  void setIpLookupProvider(IpLookupProvider value) {
+    if (value == ipLookupProvider) return;
+    ipLookupProvider = value;
+    _persistConfiguration();
+    notifyListeners();
+  }
+
+  void setIpLookupTimeoutSeconds(int value) {
+    if (!supportedTimeoutSeconds.contains(value) ||
+        value == ipLookupTimeoutSeconds) {
+      return;
+    }
+    ipLookupTimeoutSeconds = value;
     _persistConfiguration();
     notifyListeners();
   }
@@ -153,7 +179,6 @@ class AppController extends ChangeNotifier {
   }
 
   void reorderCustomTargets(int oldIndex, int newIndex) {
-    if (isRunning) return;
     final custom = targets.where((target) => !target.isBuiltIn).toList();
     if (oldIndex == newIndex) return;
     final target = custom.removeAt(oldIndex);
@@ -186,14 +211,19 @@ class AppController extends ChangeNotifier {
       return;
     }
 
+    final runRepetitions = repetitions;
+    final runWarmUpCount = warmUpCount;
+    final runTimeout = Duration(seconds: timeoutSeconds);
+
     message = null;
     isRunning = true;
     isCancelling = false;
     completedOperations = 0;
-    totalOperations = selected.length * (repetitions + warmUpCount);
+    totalOperations = selected.length * (runRepetitions + runWarmUpCount);
+    resultRepetitions = runRepetitions;
     currentResults = [];
     currentStatus = '正在刷新 IP 信息';
-    final tester = LatencyTester(timeout: Duration(seconds: timeoutSeconds));
+    final tester = LatencyTester(timeout: runTimeout);
     _tester = tester;
     var cancelled = false;
     var hasValidResults = false;
@@ -206,8 +236,8 @@ class AppController extends ChangeNotifier {
       if (isCancelling) throw const TestCancelledException();
       startedAt = DateTime.now();
       for (final target in selected) {
-        for (var index = 1; index <= warmUpCount; index++) {
-          currentStatus = '${target.name} · 预热 $index/$warmUpCount';
+        for (var index = 1; index <= runWarmUpCount; index++) {
+          currentStatus = '${target.name} · 预热 $index/$runWarmUpCount';
           notifyListeners();
           await tester.measure(target.url, 0);
           completedOperations++;
@@ -219,8 +249,8 @@ class AppController extends ChangeNotifier {
           ...currentResults,
           TargetResult(target: target, samples: samples),
         ];
-        for (var index = 1; index <= repetitions; index++) {
-          currentStatus = '${target.name} · 第 $index/$repetitions 次';
+        for (var index = 1; index <= runRepetitions; index++) {
+          currentStatus = '${target.name} · 第 $index/$runRepetitions 次';
           notifyListeners();
           final sample = await tester.measure(target.url, index);
           samples.add(sample);
@@ -258,8 +288,8 @@ class AppController extends ChangeNotifier {
         id: startedAt.microsecondsSinceEpoch.toString(),
         startedAt: startedAt,
         completedAt: DateTime.now(),
-        repetitions: repetitions,
-        warmUpCount: warmUpCount,
+        repetitions: runRepetitions,
+        warmUpCount: runWarmUpCount,
         network: runNetwork,
         results: List.of(currentResults),
       );
@@ -301,6 +331,8 @@ class AppController extends ChangeNotifier {
       repetitions: repetitions,
       warmUpCount: warmUpCount,
       timeoutSeconds: timeoutSeconds,
+      ipLookupProvider: ipLookupProvider,
+      ipLookupTimeoutSeconds: ipLookupTimeoutSeconds,
     ),
   );
 

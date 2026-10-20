@@ -4,51 +4,38 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 
+import 'ip_lookup_provider.dart';
 import 'models.dart';
 
 class NetworkService {
-  Future<NetworkSnapshot> load() async {
+  Future<NetworkSnapshot> load({
+    IpLookupProvider provider = IpLookupProvider.ipwhoIs,
+    Duration timeout = const Duration(seconds: 3),
+  }) async {
     var connectionType = '未知';
     final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 10)
-      ..idleTimeout = const Duration(seconds: 10);
-    try {
+      ..connectionTimeout = timeout
+      ..idleTimeout = timeout;
+
+    Future<NetworkSnapshot> query() async {
       final connectivity = await Connectivity().checkConnectivity();
       connectionType = _connectionLabel(connectivity);
-      final request = await client.getUrl(Uri.parse('https://ipwho.is/'));
+      final request = await client.getUrl(Uri.parse(provider.url));
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.set(HttpHeaders.userAgentHeader, 'HTTP-Latency/1.0');
-      final response = await request.close().timeout(
-        const Duration(seconds: 10),
-      );
-      final body = await utf8.decoder
-          .bind(response)
-          .join()
-          .timeout(const Duration(seconds: 10));
+      final response = await request.close();
+      final body = await utf8.decoder.bind(response).join();
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException('IP 服务返回 HTTP ${response.statusCode}');
       }
-      final json = jsonDecode(body) as Map<String, dynamic>;
-      if (json['success'] != true) {
-        throw HttpException(json['message']?.toString() ?? 'IP 服务暂时不可用');
-      }
-      final ip = json['ip']?.toString();
-      if (ip == null || InternetAddress.tryParse(ip) == null) {
-        throw const FormatException('公网 IP 服务响应缺少有效 IP');
-      }
-      final connection = json['connection'] is Map
-          ? Map<String, dynamic>.from(json['connection'] as Map)
-          : const <String, dynamic>{};
-      return NetworkSnapshot(
+      return provider.parseResponse(
+        jsonDecode(body),
         connectionType: connectionType,
-        ip: ip,
-        ipVersion:
-            json['type']?.toString() ?? (ip.contains(':') ? 'IPv6' : 'IPv4'),
-        country: json['country']?.toString(),
-        city: json['city']?.toString(),
-        isp: connection['isp']?.toString() ?? connection['org']?.toString(),
-        updatedAt: DateTime.now(),
       );
+    }
+
+    try {
+      return await query().timeout(timeout);
     } catch (error) {
       return NetworkSnapshot(
         connectionType: connectionType,

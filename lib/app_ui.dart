@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'app_controller.dart';
+import 'ip_lookup_provider.dart';
 import 'models.dart';
 
 class AppShell extends StatefulWidget {
@@ -100,76 +101,50 @@ class TestPage extends StatelessWidget {
           children: [
             NetworkCard(c),
             const SizedBox(height: 10),
-            Semantics(
-              container: true,
-              enabled: !c.isRunning,
-              child: IgnorePointer(
-                ignoring: c.isRunning,
-                child: AnimatedOpacity(
-                  opacity: c.isRunning ? 0.55 : 1,
-                  duration: const Duration(milliseconds: 150),
-                  child: Card(
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                      ),
-                      onTap: () => _showTargetPicker(context),
-                      title: const Text('测试目标'),
-                      subtitle: Text(
-                        '已选择 ${c.selectedCount}/${c.targets.length}',
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                    ),
-                  ),
-                ),
+            Card(
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                onTap: () => _showTargetPicker(context),
+                title: const Text('测试目标'),
+                subtitle: Text('已选择 ${c.selectedCount}/${c.targets.length}'),
+                trailing: const Icon(Icons.chevron_right),
               ),
             ),
             const SizedBox(height: 10),
-            Semantics(
-              container: true,
-              enabled: !c.isRunning,
-              child: IgnorePointer(
-                ignoring: c.isRunning,
-                child: AnimatedOpacity(
-                  opacity: c.isRunning ? 0.55 : 1,
-                  duration: const Duration(milliseconds: 150),
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      child: Row(
-                        children: [
-                          const Text('次数'),
-                          const SizedBox(width: 12),
-                          DropdownButton<int>(
-                            value: c.repetitions,
-                            items: [
-                              for (var n = 1; n <= 5; n++)
-                                DropdownMenuItem(value: n, child: Text('$n 次')),
-                            ],
-                            onChanged: (n) {
-                              if (n != null) c.setRepetitions(n);
-                            },
-                          ),
-                          const Spacer(),
-                          const Text('预热'),
-                          const SizedBox(width: 12),
-                          DropdownButton<int>(
-                            value: c.warmUpCount,
-                            items: [
-                              for (var n = 0; n <= 5; n++)
-                                DropdownMenuItem(value: n, child: Text('$n 次')),
-                            ],
-                            onChanged: (n) {
-                              if (n != null) c.setWarmUpCount(n);
-                            },
-                          ),
-                        ],
-                      ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                child: Row(
+                  children: [
+                    const Text('次数'),
+                    const SizedBox(width: 12),
+                    DropdownButton<int>(
+                      value: c.repetitions,
+                      items: [
+                        for (var n = 1; n <= 5; n++)
+                          DropdownMenuItem(value: n, child: Text('$n 次')),
+                      ],
+                      onChanged: (n) {
+                        if (n != null) c.setRepetitions(n);
+                      },
                     ),
-                  ),
+                    const Spacer(),
+                    const Text('预热'),
+                    const SizedBox(width: 12),
+                    DropdownButton<int>(
+                      value: c.warmUpCount,
+                      items: [
+                        for (var n = 0; n <= 5; n++)
+                          DropdownMenuItem(value: n, child: Text('$n 次')),
+                      ],
+                      onChanged: (n) {
+                        if (n != null) c.setWarmUpCount(n);
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -229,8 +204,9 @@ class TestPage extends StatelessWidget {
                   c.currentResults[index],
                   testing:
                       c.isRunning &&
-                      c.currentResults[index].samples.length < c.repetitions,
-                  expectedSamples: c.repetitions,
+                      c.currentResults[index].samples.length <
+                          c.resultRepetitions,
+                  expectedSamples: c.resultRepetitions,
                 ),
               ),
       ),
@@ -677,7 +653,7 @@ class SettingsPage extends StatelessWidget {
         SectionTitle(
           '自定义 URL',
           trailing: FilledButton.tonalIcon(
-            onPressed: c.isRunning ? null : () => editTarget(context),
+            onPressed: () => editTarget(context),
             icon: const Icon(Icons.add),
             label: const Text('添加'),
           ),
@@ -707,19 +683,13 @@ class SettingsPage extends StatelessWidget {
                             horizontalTitleGap: 8,
                             leading: ReorderableDragStartListener(
                               index: i,
-                              enabled: !c.isRunning,
                               child: Tooltip(
                                 message: '拖动排序',
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 12,
                                   ),
-                                  child: Icon(
-                                    Icons.drag_handle,
-                                    color: c.isRunning
-                                        ? Theme.of(context).disabledColor
-                                        : null,
-                                  ),
+                                  child: const Icon(Icons.drag_handle),
                                 ),
                               ),
                             ),
@@ -765,6 +735,52 @@ class SettingsPage extends StatelessWidget {
                 ),
         ),
         const SizedBox(height: 20),
+        const SectionTitle('IP 信息'),
+        const SizedBox(height: 8),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                title: const Text('查询接口'),
+                trailing: SizedBox(
+                  width: 140,
+                  child: DropdownButton<IpLookupProvider>(
+                    value: c.ipLookupProvider,
+                    isExpanded: true,
+                    items: IpLookupProvider.values
+                        .map(
+                          (provider) => DropdownMenuItem(
+                            value: provider,
+                            child: Text(provider.label),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (provider) {
+                      if (provider != null) c.setIpLookupProvider(provider);
+                    },
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                title: const Text('查询总超时'),
+                trailing: DropdownButton<int>(
+                  key: const ValueKey('ip_lookup_timeout'),
+                  value: c.ipLookupTimeoutSeconds,
+                  items: supportedTimeoutSeconds
+                      .map(
+                        (n) => DropdownMenuItem(value: n, child: Text('$n 秒')),
+                      )
+                      .toList(),
+                  onChanged: (n) {
+                    if (n != null) c.setIpLookupTimeoutSeconds(n);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
         const SectionTitle('请求限制'),
         const SizedBox(height: 8),
         Card(
@@ -774,16 +790,14 @@ class SettingsPage extends StatelessWidget {
                 title: const Text('单次请求总超时'),
                 trailing: DropdownButton<int>(
                   value: c.timeoutSeconds,
-                  items: const [3, 5, 10, 15]
+                  items: supportedTimeoutSeconds
                       .map(
                         (n) => DropdownMenuItem(value: n, child: Text('$n 秒')),
                       )
                       .toList(),
-                  onChanged: c.isRunning
-                      ? null
-                      : (n) {
-                          if (n != null) c.setTimeoutSeconds(n);
-                        },
+                  onChanged: (n) {
+                    if (n != null) c.setTimeoutSeconds(n);
+                  },
                 ),
               ),
               const Divider(height: 1),

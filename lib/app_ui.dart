@@ -866,7 +866,7 @@ class _TargetEditorDialogState extends State<_TargetEditorDialog> {
   void initState() {
     super.initState();
     name = TextEditingController(text: widget.target?.name ?? '');
-    url = TextEditingController(text: widget.target?.url ?? 'https://');
+    url = TextEditingController(text: widget.target?.url ?? '');
   }
 
   @override
